@@ -89,7 +89,7 @@ module.exports = function(RED) {
 					<md-input-container>
 						<md-select class="nr-dashboard-dropdown" ng-model="myDeviceSelect" ng-change="showStandardView()" aria-label="Select device" ng-disabled="isEditMode">
 							<md-option value="overview"> ${RED._("time-scheduler.ui.overview")} </md-option>
-							<md-option ng-repeat="device in devices" value={{$index}}> {{devices[$index]}} </md-option>
+							<md-option ng-repeat="device in devices" value={{$index}}> {{devices[$index]}}</md-option>
 						</md-select>
 					</md-input-container>
 				</span>
@@ -352,7 +352,11 @@ module.exports = function(RED) {
 					storeFrontEndInputAsState: true,
 					persistantFrontEndValue: true,
 					beforeEmit: function(msg, value) {
-						if (msg.hasOwnProperty("disableDevice")) {
+						if  (msg.hasOwnProperty("selectdevice")) {
+			                                        setSettings({ ...getSettings(), selector:msg.selectdevice });
+                                                                node.status({ fill: "green", shape: "ring", text: msg.selectdevice+" selected" });
+						}
+						else  if (msg.hasOwnProperty("disableDevice")) {
 							if (addDisabledDevice(msg.disableDevice)) {
 								node.status({ fill: "green", shape: "ring", text: msg.disableDevice + " " + RED._("time-scheduler.disabled") });
 								msg.payload = serializeData();
@@ -519,13 +523,6 @@ module.exports = function(RED) {
 								if ($scope.formtimer.starttype === "custom" && $scope.diff(starttime, endtime) < 1) {
 									if (confirm($scope.i18n.alertTimespan)) endtime += 24 * 60 * 60 * 1000;
 									else return;
-								} else if ($scope.formtimer.starttype !== "custom") {
-									timer.endSolarEvent = $scope.formtimer.endtype;
-									timer.endSolarOffset = $scope.formtimer.endOffset;
-									if (timer.startSolarEvent === timer.endSolarEvent && (timer.startSolarOffset || 0) >= (timer.endSolarOffset || 0)) {
-										alert($scope.i18n.alertTimespanDay);
-										return;
-									}
 								}
 
 								timer.endtime = endtime;
@@ -674,6 +671,7 @@ module.exports = function(RED) {
 									$scope.timers = json.timers;
 									$scope.disabledDevices = json.settings.disabledDevices;
 									$scope.overviewFilter = json.settings.overviewFilter;
+									if(json.settings.selector){ $scope.myDeviceSelect = json.settings.selector; }
 									$scope.$digest();
 								},
 								complete: function() {
@@ -795,6 +793,7 @@ module.exports = function(RED) {
 					for (let device = 0; device < config.devices.length; device++) {
 						const msg = { payload: isInTime(device) };
 						if (config.sendTopic) msg.topic = config.devices[device];
+						msg.id = device;
 						msg.payload != null ? outputValues.push(msg) : outputValues.push(null);
 					}
 					if (config.onlySendChange) removeUnchangedValues(outputValues);
